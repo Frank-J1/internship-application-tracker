@@ -1,4 +1,5 @@
 const express = require("express");
+const db = require("./db/database");
 const app = express();
 
 app.use(express.json());
@@ -15,11 +16,25 @@ app.post("/applications", (req, res) => {
             error: "company and role are required"
         });
     }
-    res.status(201).json({
-        message: "Application validated",
-        company,
-        role
-    });
+    const createdAt = new Date().toISOString();
+
+    db.run(
+        `INSERT INTO applications (company, role, created_at)
+        VALUES (?, ?, ?)`,
+        [company, role, createdAt],
+        function (err) {
+            if (err) {
+                return res.status(500).json({ error: "Failed to save application" });
+        }
+
+        res.status(201).json({
+            id: this.lastID,
+            company,
+            role,
+            createdAt
+         });
+        }
+     );
 });
 
 
