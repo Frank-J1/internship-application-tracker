@@ -36,6 +36,24 @@ app.post("/applications", (req, res) => {
         }
      );
 });
+app.get("/applications", (req, res) => {
+    db.all(
+        "SELECT id, company, role, created_at FROM applications",
+        [],
+        (err, rows) => {
+            if(err){
+                return res.status(500).json({error: "Failed to fetch applications!"});
+            }
+            const formatted = rows.map(row => ({
+                id: row.id,
+                company: row.company,
+                role: row.role,
+                createdAt: row.created_at
+            }));
+            res.json(formatted);
+        }
+    );
+});
 
 
 
