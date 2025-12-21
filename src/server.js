@@ -94,19 +94,19 @@ app.put("/applications/:id", (req, res) => {
     db.run(
         "UPDATE applications SET company = ?, role = ? WHERE id = ?", //update the ENTIRE application
         [company, role, id],
-        function (err){
-            if (err){
+        function (err) {
+            if (err) {
                 return res.status(500).json({ error: "Failed to update applications" });
             }
 
-            if (this.changes === 0){
+            if (this.changes === 0) {
                 return res.status(404).json({ error: "Application not found" });
             }
 
             res.status(200).json({ id, company, role }); //Write the new information to JSON
         }
     );
-})
+});
 
 app.listen(3000, () => {
     console.log("Server running on port 3000");
