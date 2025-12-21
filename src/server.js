@@ -57,29 +57,56 @@ app.get("/applications", (req, res) => {
 });
 
 app.delete("/applications/:id", (req, res) => {
-    const id = Number(req.params.id);
+    const id = Number(req.params.id); //Convery url variable to a number.
 
-    if (!Number.isInteger(id)){
+    if (!Number.isInteger(id)){ 
         return res.status(400).json({ error: "Invalid id" });
     }
 
     db.run(
-        "DELETE FROM applications WHERE id = ?",
+        "DELETE FROM applications WHERE id = ?", // Delete application from db
         [id],
         function (err){
             if (err){
                 return res.status(500).json({ error: "Failed to delete application" });
             }
 
+            if (this.changes === 0){ //Changes is always 0/1, ensure it is exactly 0/1
+                return res.status(404).json({ error: "Application not found" });
+            }
+
+            return res.status(204).send(); //204 beacuse we dont want to send a JSON messsage
+        }
+    );
+});
+
+app.put("/applications/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)){
+        return res.status(400).json({ error: "Invalid id" });
+    }
+
+    const { company, role } = req.body;
+    if(!company || !role){
+        return res.status(400).json({ error: "company and role are required!" });
+    }
+
+    db.run(
+        "UPDATE applications SET company = ?, role = ? WHERE id = ?", //update the ENTIRE application
+        [company, role, id],
+        function (err){
+            if (err){
+                return res.status(500).json({ error: "Failed to update applications" });
+            }
+
             if (this.changes === 0){
                 return res.status(404).json({ error: "Application not found" });
             }
 
-            return res.status(204).send();
+            res.status(200).json({ id, company, role }); //Write the new information to JSON
         }
     );
-
-});
+})
 
 app.listen(3000, () => {
     console.log("Server running on port 3000");
