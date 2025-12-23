@@ -22,4 +22,15 @@ db.run(`
   )
 `);
 
+db.run(
+  `ALTER TABLE applications ADD COLUMN status TEXT DEFAULT 'applied'`, 
+  (err) => {
+    if(err){
+      console.log("Statis column may already exist", err.message);
+    } 
+    else{
+      console.log("Added status column to applications table");
+  }
+});
+
 module.exports = db;

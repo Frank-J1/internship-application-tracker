@@ -10,7 +10,7 @@ app.get("/ping", (req, res) => {
 
 
 app.post("/applications", (req, res) => {
-    const { company, role } = req.body;
+    const { company, role, status } = req.body;
     if (!company || !role){
         return res.status(400).json({
             error: "company and role are required"
@@ -19,9 +19,9 @@ app.post("/applications", (req, res) => {
     const createdAt = new Date().toISOString();
 
     db.run(
-        `INSERT INTO applications (company, role, created_at)
-        VALUES (?, ?, ?)`,
-        [company, role, createdAt],
+        `INSERT INTO applications (company, role, status, created_at)
+        VALUES (?, ?, ?, ?)`,
+        [company, role, status, createdAt],
         function (err) {
             if (err) {
                 return res.status(500).json({ error: "Failed to save application" });
@@ -39,7 +39,7 @@ app.post("/applications", (req, res) => {
 
 app.get("/applications", (req, res) => {
     db.all(
-        "SELECT id, company, role, created_at FROM applications",
+        "SELECT id, company, role, status, created_at FROM applications",
         [],
         (err, rows) => {
             if(err){
@@ -49,6 +49,7 @@ app.get("/applications", (req, res) => {
                 id: row.id,
                 company: row.company,
                 role: row.role,
+                status: row.status,
                 createdAt: row.created_at
             }));
             res.json(formatted);
@@ -82,18 +83,26 @@ app.delete("/applications/:id", (req, res) => {
 
 app.put("/applications/:id", (req, res) => {
     const id = Number(req.params.id);
+
     if (!Number.isInteger(id)){
         return res.status(400).json({ error: "Invalid id" });
     }
 
-    const { company, role } = req.body;
-    if(!company || !role){
-        return res.status(400).json({ error: "company and role are required!" });
+    const { company, role, status } = req.body;
+    if(!company || !role || !status){
+        return res.status(400).json({ error: "company, role and status are required!" });
+    }
+
+    const allowedStatuses = new Set(["applied", "interview", "offer", "rejected"]);
+    const finalStatus = String(status).toLowerCase();
+
+    if (!allowedStatuses.has(finalStatus)) {
+        return res.status(400).json({ error: "invalid status!"});
     }
 
     db.run(
-        "UPDATE applications SET company = ?, role = ? WHERE id = ?", //update the ENTIRE application
-        [company, role, id],
+        "UPDATE applications SET company = ?, role = ?, status = ? WHERE id = ?", //update the ENTIRE application
+        [company, role, finalStatus, id],
         function (err) {
             if (err) {
                 return res.status(500).json({ error: "Failed to update applications" });
@@ -103,7 +112,7 @@ app.put("/applications/:id", (req, res) => {
                 return res.status(404).json({ error: "Application not found" });
             }
 
-            res.status(200).json({ id, company, role }); //Write the new information to JSON
+            res.status(200).json({ id, company, role, status: finalStatus }); //Write the new information to JSON
         }
     );
 });
