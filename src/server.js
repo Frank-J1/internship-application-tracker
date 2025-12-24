@@ -45,9 +45,45 @@ app.post("/applications", (req, res) => {
 });
 
 app.get("/applications", (req, res) => {
+    const { status, sort, direction } = req.query;
+    console.log("Query params:", { status, sort });
+
+    let sql = "SELECT id, company, role, status, created_at FROM applications";
+    const params = [];
+    
+    if (status){
+        const allowedStatuses = new Set(["applied", "interview", "offer", "rejected"]);
+        const finalStatus = String(status).toLowerCase();
+
+        if (!allowedStatuses.has(status)){
+            return res.status(400).json({ error: "invalid status" });
+        }
+
+        sql += " WHERE status = ?";
+        params.push(finalStatus);
+
+    if (sort){
+        const allowedSorts = new Set(["created_at", "company", "role", "status", "id"]);
+        const finalSort = String(sort).toLowerCase();
+
+        if (!allowedSorts.has(finalSort)){
+            return res.status(400).json({ error: "invalid sort coloum!" });
+        }
+
+        sql += ` ORDER BY ${finalSort}`;
+    }
+
+    const allowedDirections = new Set(["asc", "desc"]);
+    const finalDirection = direction ? String(direction).toLowerCase() : "asc";
+    
+    if(!allowedDirections.has(finalDirection)){
+        return res.status(400).json({ error: "invalid direction"});
+    }
+    sql += ` ORDER BY ${finalSort} ${finalDirection}`;
+}
+
     db.all(
-        "SELECT id, company, role, status, created_at FROM applications",
-        [],
+        sql, params,
         (err, rows) => {
             if(err){
                 return res.status(500).json({ error: "Failed to fetch applications!" });
