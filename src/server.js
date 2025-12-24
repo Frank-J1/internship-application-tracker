@@ -12,16 +12,22 @@ app.get("/ping", (req, res) => {
 app.post("/applications", (req, res) => {
     const { company, role, status } = req.body;
     if (!company || !role){
-        return res.status(400).json({
-            error: "company and role are required"
-        });
+        return res.status(400).json({error: "company and role are required"});
     }
+
+    const allowedStatuses = new Set(["applied", "interview", "offer", "rejected"]);
+    const finalStatus = status ? String(status).toLowerCase() : "applied";
+
+    if (!allowedStatuses.has(finalStatus)){
+        return res.status(400).json({ error: "invalid status" })
+    }
+
     const createdAt = new Date().toISOString();
 
     db.run(
         `INSERT INTO applications (company, role, status, created_at)
         VALUES (?, ?, ?, ?)`,
-        [company, role, status, createdAt],
+        [company, role, finalStatus, createdAt],
         function (err) {
             if (err) {
                 return res.status(500).json({ error: "Failed to save application" });
@@ -31,6 +37,7 @@ app.post("/applications", (req, res) => {
             id: this.lastID,
             company,
             role,
+            status: finalStatus,
             createdAt
          });
         }
@@ -89,15 +96,16 @@ app.put("/applications/:id", (req, res) => {
     }
 
     const { company, role, status } = req.body;
+
     if(!company || !role || !status){
         return res.status(400).json({ error: "company, role and status are required!" });
     }
 
     const allowedStatuses = new Set(["applied", "interview", "offer", "rejected"]);
-    const finalStatus = String(status).toLowerCase();
+    const finalStatus = status ? String(status).toLowerCase() : "applied";
 
     if (!allowedStatuses.has(finalStatus)) {
-        return res.status(400).json({ error: "invalid status!"});
+        return res.status(400).json({ error: "invalid status!" });
     }
 
     db.run(
