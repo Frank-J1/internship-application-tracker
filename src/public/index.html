@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Internship Application Tracker</title>
+</head>
+<body>
+  <h1>Internship Application Tracker</h1>
+
+  <h2>Add Application</h2>
+  <form id="addForm">
+    <input name="company" placeholder="Company" required />
+    <input name="role" placeholder="Role" required />
+    <select name="status">
+      <option value="applied">applied</option>
+      <option value="interview">interview</option>
+      <option value="offer">offer</option>
+      <option value="rejected">rejected</option>
+    </select>
+    <button type="submit">Add</button>
+  </form>
+
+  <h2>Applications</h2>
+  <button id="refreshBtn">Refresh</button>
+  <ul id="list"></ul>
+
+  <script>
+    async function loadApplications() {
+      const res = await fetch("/applications");
+      const apps = await res.json();
+
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      apps.forEach(app => {
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+          <strong>${app.company}</strong> — ${app.role}
+          <select data-id="${app.id}">
+            <option value="applied">applied</option>
+            <option value="interview">interview</option>
+            <option value="offer">offer</option>
+            <option value="rejected">rejected</option>
+          </select>
+          <button data-update="${app.id}">Update</button>
+        `;
+
+        li.querySelector("select").value = app.status;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("refreshBtn").onclick = loadApplications;
+
+    document.getElementById("addForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+
+      const body = {
+        company: form.company.value,
+        role: form.role.value,
+        status: form.status.value
+      };
+
+      const res = await fetch("/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        alert("Failed to add application");
+        return;
+      }
+
+      form.reset();
+      loadApplications();
+    };
+
+    document.getElementById("list").onclick = async (e) => {
+      const id = e.target.dataset.update;
+      if (!id) return;
+
+      const select = document.querySelector(`select[data-id="${id}"]`);
+      const newStatus = select.value;
+
+      const li = e.target.closest("li");
+      const company = li.dataset.company;
+      const role = li.dataset.role;
+
+      const res = await fetch(`/applications/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company, role, status: newStatus }),
+      });
+
+      if (!res.ok) {
+        alert("Failed to update application");
+        return;
+      }
+
+      loadApplications();
+    };
+
+    loadApplications();
+  </script>
+</body>
+</html>
